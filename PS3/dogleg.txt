@@ -1,0 +1,59 @@
+%------------------Dogleg Method------------------%
+function []=Dogleg(a, b)
+
+ff=@(x,y) 10*(y-x^2)^2+(1-x)^2;
+gf=@(x,y) [-40*x*(y-x^2)-2*(1-x);20*(y-x^2)]; 
+Hf=@(x,y) [80*y^2-40*(y-x^2)+2 -40*x;-40*x 20];
+mm=@(x,y,z) ff(x,y) + gf(x,y)'*z + .5*z'*Hf(x,y)*z;
+
+x0 = [a,b];
+
+delta_max = 4;
+delta = 1;
+eta = 0.20;
+
+for k = 1:10 
+    f = ff(x0(1), x0(2));
+    g = gf(x0(1), x0(2));
+    h = Hf(x0(1), x0(2));
+    
+    %pk = (-delta)*(g/norm(g));
+    pu = g*((-g'*g)/(g'*h*g));
+    x1 = x0;
+    pt = [];
+    
+    if g'*h*g <= 0
+        tau = 1;
+    else
+        tau = min((norm(g)^3)*inv((h*g)*(h*g)'));
+    end
+    %pc = tau * pk;
+    while tau > 2
+        tau = tau *.25;
+    end
+    if tau <=1
+        pt = tau * pu;
+    else
+        if tau == 2
+            pt = pu + (tau - 1)*(-h-pu);
+        end
+    end
+    
+    m = mm(x0(1), x0(2), pt);
+    row = (f - ff(x0(1)+pt, x0(2)+pt))*inv(mm(x0(1),x0(2),0) - m);
+
+    if row < 1/4
+        delta = delta*.25;
+    else
+        if (row > .75) & (norm(pu) == delta)
+            delta = min(2*delta,delta_max);
+        end
+    end
+    
+    if row > eta
+        x1 = x0 + pt;
+    end
+
+    x0 = x1
+end
+%---------------------------------------------------%
